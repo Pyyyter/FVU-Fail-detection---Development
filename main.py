@@ -9,6 +9,7 @@ from PIL.TiffImagePlugin import IFDRational
 from ultralytics import YOLO
 from assets.auxiliar import count_and_pos_hotspot, bouding_box
 from assets.placa import Placa
+from assets.database import adicionar_ao_database, realizar_query, ler_database, resgatar_missions, resgatar_panels_from_mission
 
 app = Flask(__name__)
 
@@ -25,9 +26,8 @@ class ImageProcessor:
     def __init__(self, model_path):
         self.yolo_predictor = YOLOPredictor(model_path)
 
-    def process_images(self, images):
+    def process_images(self, images, mission_name):
         placa_matrix = []
-
         for img_data in images:
             image = Image.open(BytesIO(img_data['data']))
             metadata = extract_metadata(image)
@@ -43,17 +43,17 @@ class ImageProcessor:
             results = self.yolo_predictor.predict(image)
 
             # Processar recortes e obter resultados
-            paineis_detectados = self.extract_placas_from_predictions(image, results, reformatted, image_path)
+            paineis_detectados = self.extract_placas_from_predictions(image, results, reformatted, image_path, mission_name)
 
             # Adicionar à matriz
             placa_matrix.append([Placa(reformatted, image, image_path).to_dict(), paineis_detectados])
 
         return placa_matrix, paineis_detectados
 
-    def extract_placas_from_predictions(self, image, results, geolocation, image_path):
+    def extract_placas_from_predictions(self, image, results, geolocation, image_path, mission_name):
         recortes = []
         base_name = os.path.splitext(os.path.basename(image_path))[0]  # Nome base da imagem (sem extensão)
-        output_dir = "recortes"  # Pasta onde os recortes serão salvos
+        output_dir = "recortes" + mission_name  # Pasta onde os recortes serão salvos
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -71,8 +71,14 @@ class ImageProcessor:
             cropped_img.save(cropped_path)
             
             # Criar um objeto Placa e detectar defeito
-            painel = Placa(geolocation=geolocation, image=cropped_img, image_path=cropped_path)
+            painel = Placa(geolocation=geolocation, image=cropped_img, image_path=cropped_path, mission_name=mission_name)
+
             detecta_defeito(painel)
+
+            print(painel.to_dict())
+
+            # Adicionar ao database
+            adicionar_ao_database(painel, 'database.csv')
 
             # Adicionar o placa processado à lista de recortes
             recortes.append(painel.to_dict())
@@ -157,7 +163,7 @@ def save_to_csv(placa_matrix, csv_filename='resultado.csv'):
             image_path = placa_info.get('image_path', 'N/A')
             writer.writerow([image_path, paineis])
 
-def process_uploaded_files(zip_file):
+def process_uploaded_files(zip_file, mission_name):
     """Processar arquivos enviados em um arquivo .zip."""
     images = []
 
@@ -167,11 +173,11 @@ def process_uploaded_files(zip_file):
                 with zip_ref.open(file_name) as file:
                     images.append({
                         'image_path': file_name,
-                        'data': file.read()
+                        'data': file.read(),
                     })
 
     processor = ImageProcessor(model_path="assets/best.pt")
-    placa_matrix, paineis_processados = processor.process_images(images)
+    placa_matrix, paineis_processados = processor.process_images(images, mission_name)
     
     # Salvar a matriz em um CSV
     save_to_csv(placa_matrix)
@@ -179,17 +185,27 @@ def process_uploaded_files(zip_file):
     return placa_matrix, paineis_processados
 
 # API para upload de arquivo .zip
-@app.route('/upload-zip', methods=['POST'])
-def upload_zip():
+@app.route('/upload-zip/<mission_name>', methods=['POST'])
+def upload_zip(mission_name):
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
     zip_file = request.files['file']
-    placa_matrix, paineis_processados = process_uploaded_files(zip_file)
+    placa_matrix = process_uploaded_files(zip_file, mission_name=mission_name)
 
     paineis_processados_serializaveis = make_json_serializable(placa_matrix)
 
-    return jsonify(paineis_processados_serializaveis)
+    response = {
+        "mission_name": mission_name,
+        "processed_panels": paineis_processados_serializaveis
+    }
+    return jsonify(response)
+
+@app.route('/database/<mission_name>', methods=['GET'])
+def get_database(mission_name):
+
+    placas = resgatar_panels_from_mission('database.csv', mission_name)
+    return jsonify(placas)
 
 if __name__ == "__main__":
     app.run(debug=True)

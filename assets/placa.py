@@ -1,5 +1,3 @@
-
-# Classe placa para armazenar informações de cada placa solar
 class Placa:
     def __init__(self, geolocation, image=None, image_path=None, mission_name=None):
         self.geolocation = geolocation
@@ -17,5 +15,6 @@ class Placa:
         return {
             "geolocation": self.geolocation,
             "qualidadeplaca": self.qualidadeplaca,
-            "image_path": self.image_path
+            "image_path": self.image_path,
+            "mission_name": self.mission_name
         }
