@@ -179,12 +179,10 @@ def process_uploaded_files(zip_file, mission_name):
     processor = ImageProcessor(model_path="assets/best.pt")
     placa_matrix, paineis_processados = processor.process_images(images, mission_name)
     
-    # Salvar a matriz em um CSV
     save_to_csv(placa_matrix)
 
     return placa_matrix, paineis_processados
 
-# API para upload de arquivo .zip
 @app.route('/upload-zip/<mission_name>', methods=['POST'])
 def upload_zip(mission_name):
     if 'file' not in request.files:
