@@ -67,4 +67,4 @@ Para enviar um arquivo ZIP contendo imagens para a API, você pode usar o comand
 ### Enviar arquivo ZIP
 
 ```bash
-curl -X POST -F "file=@seu_path.zip" http://localhost:5000/upload-zip
+curl -X POST -F "file=@seu_path.zip" http://localhost:5000/upload-zip/$nome_da_missão
