@@ -187,6 +187,39 @@ def process_uploaded_files(zip_file, mission_name):
 
     return placa_matrix, paineis_processados
 
+def parse_txt_to_json(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    reader = csv.DictReader(lines)
+    result = []
+    for row in reader:
+        # Converter o campo 'location' de string para dicionário
+        location = eval(row['location'])  # Usar eval com cautela; preferível usar json.loads se possível
+
+        # Criar o objeto formatado
+        formatted_row = {
+            "ID": float(row["ID"]),
+            "mission_name": row["mission_name"],
+            "image_path": row["image_path"].replace('\\', '/'),  # Ajustar o caminho para formato universal
+            "situation": row["situation"],
+            "location": {
+                "latitude": {
+                    "degrees": location['S'][0],
+                    "minutes": location['S'][1],
+                    "seconds": location['S'][2],
+                },
+                "longitude": {
+                    "degrees": location['W'][0],
+                    "minutes": location['W'][1],
+                    "seconds": location['W'][2],
+                },
+            },
+        }
+        result.append(formatted_row)
+
+    return result
+
 @app.route('/upload-zip/<mission_name>', methods=['POST'])
 def upload_zip(mission_name):
     if 'file' not in request.files:
@@ -206,16 +239,21 @@ def upload_zip(mission_name):
 @app.route('/database/<mission_name>', methods=['GET'])
 def get_database(mission_name):
 
-    placas = resgatar_panels_from_mission('placas.csv', mission_name)
+    placas_string = resgatar_panels_from_mission('placas.csv', mission_name)
 
-        # Nome do arquivo a ser criado
     file_path = 'mission_data.txt'
 
-    # Escrevendo o conteúdo no arquivo
     with open(file_path, 'w') as file:
-        file.write(placas)
-
-    return jsonify(placas)
+        file.write(placas_string)
+    
+    try:
+        placas = parse_txt_to_json(file_path)
+        os.remove(file_path)
+        return jsonify(placas)
+    except FileNotFoundError:
+        return jsonify({"error": "File not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
