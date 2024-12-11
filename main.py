@@ -5,6 +5,7 @@ from io import BytesIO
 from flask import Flask, request, jsonify
 from PIL import Image, ExifTags
 from PIL.TiffImagePlugin import IFDRational
+import ast
 
 from ultralytics import YOLO
 from assets.auxiliar import count_and_pos_hotspot, bouding_box
@@ -52,6 +53,7 @@ class ImageProcessor:
 
     def extract_placas_from_predictions(self, image, results, geolocation, image_path, mission_name):
         recortes = []
+        localizações_placas = []
         base_name = os.path.splitext(os.path.basename(image_path))[0]  # Nome base da imagem (sem extensão)
         output_dir = "recortes" + mission_name  # Pasta onde os recortes serão salvos
 
@@ -62,6 +64,8 @@ class ImageProcessor:
         for idx, box in enumerate(results[0].boxes.xyxy, start=1):
             x1, y1, x2, y2 = map(int, box)
             cropped_img = image.crop((x1, y1, x2, y2))
+            
+            localizações_placas.append((x1, y1, x2, y2))
             
             # Nome do recorte baseado na imagem original
             cropped_name = f"{base_name}_BOX{idx}.jpg"
@@ -78,7 +82,7 @@ class ImageProcessor:
             print(painel.to_dict())
 
             # Adicionar ao database
-            adicionar_ao_database(painel, 'database.csv')
+            adicionar_ao_database(painel, 'placas.csv')
 
             # Adicionar o placa processado à lista de recortes
             recortes.append(painel.to_dict())
@@ -202,7 +206,15 @@ def upload_zip(mission_name):
 @app.route('/database/<mission_name>', methods=['GET'])
 def get_database(mission_name):
 
-    placas = resgatar_panels_from_mission('database.csv', mission_name)
+    placas = resgatar_panels_from_mission('placas.csv', mission_name)
+
+        # Nome do arquivo a ser criado
+    file_path = 'mission_data.txt'
+
+    # Escrevendo o conteúdo no arquivo
+    with open(file_path, 'w') as file:
+        file.write(placas)
+
     return jsonify(placas)
 
 if __name__ == "__main__":
