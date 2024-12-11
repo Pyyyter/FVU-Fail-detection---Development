@@ -204,17 +204,9 @@ def parse_txt_to_json(file_path):
             "image_path": row["image_path"].replace('\\', '/'),  # Ajustar o caminho para formato universal
             "situation": row["situation"],
             "location": {
-                "latitude": {
-                    "degrees": location['S'][0],
-                    "minutes": location['S'][1],
-                    "seconds": location['S'][2],
+                    "latitude": f"{location['S'][0]},{location['S'][1]},{location['S'][2]}",
+                    "longitude": f"{location['W'][0]},{location['W'][1]},{location['W'][2]}",
                 },
-                "longitude": {
-                    "degrees": location['W'][0],
-                    "minutes": location['W'][1],
-                    "seconds": location['W'][2],
-                },
-            },
         }
         result.append(formatted_row)
 
@@ -254,6 +246,16 @@ def get_database(mission_name):
         return jsonify({"error": "File not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/database/missions', methods=['GET'])
+def get_missions():
+    missions = resgatar_missions('placas.csv')
+    print(missions)
+    if "mission_name" in missions:
+        missions.remove("mission_name")
+
+    print(missions)
+    return jsonify(missions)
 
 if __name__ == "__main__":
     app.run(debug=True)
