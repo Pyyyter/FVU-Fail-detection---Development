@@ -28,35 +28,28 @@ Esta API foi desenvolvida para processar imagens de placas solares e detectar de
 
 ```json
 [
-  [
     {
-      "geolocation": {
-        "S": "(22.0, 54.0, 24.899)",
-        "W": "(43.0, 7.0, 58.0787)"
-      },
-      "image_path": "DJI_20241003122811_0005_T.JPG",
-      "qualidadeplaca": null
+        "ID": 1.0,
+        "mission_name": "Iguaba",
+        "image_path": "recortesIguaba\DJI_20241003122836_0007_T_BOX1",
+        "situation": "Sem Defeitos",
+        "location": {
+            "latitude": "(22.0, 54.0, 24.8587)",
+            "longitude": "(43.0, 7.0, 58.3923)"
+        }
     },
-    [
-      {
-        "geolocation": {
-          "S": "(22.0, 54.0, 24.899)",
-          "W": "(43.0, 7.0, 58.0787)"
-        },
-        "image_path": "recortes\\DJI_20241003122811_0005_T_BOX1.jpg",
-        "qualidadeplaca": "Sem defeitos"
-      },
-      {
-        "geolocation": {
-          "S": "(22.0, 54.0, 24.899)",
-          "W": "(43.0, 7.0, 58.0787)"
-        },
-        "image_path": "recortes\\DJI_20241003122811_0005_T_BOX2.jpg",
-        "qualidadeplaca": "Sem defeitos"
-      }
-    ]
-  ]
+    {
+        "ID": 2.0,
+        "mission_name": "Iguaba",
+        "image_path": "recortesIguaba\DJI_20241003122836_0007_T_BOX2",
+        "situation": "Sem Defeitos",
+        "location": {
+            "latitude": "(22.0, 54.0, 24.8587)",
+            "longitude": "(43.0, 7.0, 58.3923)"
+        }
+    }
 ]
+
 ```
 ---
 
