@@ -31,7 +31,7 @@ Esta API foi desenvolvida para processar imagens de placas solares e detectar de
     {
         "ID": 1.0,
         "mission_name": "Iguaba",
-        "image_path": "recortesIguaba\DJI_20241003122836_0007_T_BOX1",
+        "image_path": "recortesIguaba/DJI_20241003122836_0007_T_BOX1",
         "situation": "Sem Defeitos",
         "location": {
             "latitude": "(22.0, 54.0, 24.8587)",
@@ -41,7 +41,7 @@ Esta API foi desenvolvida para processar imagens de placas solares e detectar de
     {
         "ID": 2.0,
         "mission_name": "Iguaba",
-        "image_path": "recortesIguaba\DJI_20241003122836_0007_T_BOX2",
+        "image_path": "recortesIguaba/DJI_20241003122836_0007_T_BOX2",
         "situation": "Sem Defeitos",
         "location": {
             "latitude": "(22.0, 54.0, 24.8587)",
