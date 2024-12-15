@@ -24,7 +24,7 @@ Esta API foi desenvolvida para processar imagens de placas solares e detectar de
 
 ---
 
-## ↩️ Modelo do retorno
+## ↩️ Modelo do retorno das placas de uma missão:
 
 ```json
 [
@@ -68,3 +68,16 @@ Para enviar um arquivo ZIP contendo imagens para a API, você pode usar o comand
 
 ```bash
 curl -X POST -F "file=@seu_path.zip" http://localhost:5000/upload-zip/$nome_da_missão
+```
+
+### Retornar todas as missões
+
+```bash
+curl -X GET http://127.0.0.1:5000/database/missions
+```
+
+### Retornar todas as placas de uma missão
+
+```bash
+curl -X GET http://127.0.0.1:5000/database/${mission_name}
+```
