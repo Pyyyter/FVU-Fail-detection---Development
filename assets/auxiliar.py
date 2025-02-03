@@ -4,6 +4,8 @@ import os
 from natsort import natsorted
 import numpy as np
 from scipy.ndimage import label
+from math import dist as distancia_euclidiana, radians, cos
+
 
 
 def cria_matriz_imagem(placa):
@@ -86,5 +88,98 @@ def bouding_box(placa, pos_hotspots, quant_hotspots):
             tamanhos_bounding_box[placa][i]['altura'] = altura
             tamanhos_bounding_box[placa][i]['largura'] = largura
     return tamanhos_bounding_box
+
+#função de extrair metadados do gabriel
+def extract_metadata(image):
+    """Extrair metadados EXIF da imagem e converter para tipos serializáveis."""
+    if image._getexif() is None:
+        return {}
+    metadata = {}
+    for k, v in image._getexif().items():
+        tag_name = ExifTags.TAGS.get(k, k)
+        try:
+            if isinstance(v, (list, tuple)):
+                v = [
+                    float(x) if hasattr(x, "denominator") and x.denominator != 0 else None
+                    for x in v
+                ]
+            elif hasattr(v, "denominator") and v.denominator != 0:
+                v = float(v)
+            elif hasattr(v, "denominator") and v.denominator == 0:
+                v = None
+            metadata[tag_name] = v
+        except Exception as e:
+            metadata[tag_name] = str(v)  # Converte valores não processáveis para string
+    return metadata
+
+#função de converter grau, metro e segundo para decimal
+def dms_to_dd(hemisferio, d, m, s):
+    dd = d + float(m)/60 + float(s)/3600
+    if hemisferio == 'W' or hemisferio == 'S':
+        return -dd
+    elif hemisferio == 'E' or hemisferio == 'N':
+        return dd
+    
+
+#calcula o tamanho de 1 pixel da imagem em metros
+def calcula_tamanho_1_pixel(altitude, abertura_lente, imagem):
+    
+    altitude_relativa = altitude
+    cos_abertura_lente = cos(radians(abertura_lente/2))
+
+    pixels_horizontal, pixels_vertical = imagem.size
+    distancia_drone_margem_imagem = abs(altitude_relativa * cos_abertura_lente)
+    distancia_margem_a_margem = 2*distancia_drone_margem_imagem
+    pixel_em_metros = distancia_margem_a_margem/pixels_horizontal
+
+    return pixel_em_metros
+
+
+#distancia do drone até o o centro da placa (no 2d, sem altura), calculado em pixels 
+def calcula_distancia_centro_placa(imagem, coordenadas_placa, pixel_em_metros):
+
+    coordenadas_drone = (imagem.size[0]/2, imagem.size[1]/2)
+    distancia_centro_placa = distancia_euclidiana(coordenadas_placa, coordenadas_drone)
+    distancia_centro_placa_metros = distancia_centro_placa * pixel_em_metros
+
+    return distancia_centro_placa_metros
+
+
+#converte as coordenadas do centro da imagem de grau, minuto e segundo para decimal e calcula a coordenada da placa  
+def calcula_coordenadas_geograficas_placa(hemisferio_latitude, hemisferio_longitude, latitude, longitude, distancia_centro_placa_metros):
+
+    raio_terra = 6378137
+
+    latitude_decimal = dms_to_dd(hemisferio_latitude, latitude[0], latitude[1], latitude[2])
+    longitude_decimal = dms_to_dd(hemisferio_longitude, longitude[0], longitude[1], longitude[2])
+
+    variação_latitude = distancia_centro_placa_metros/raio_terra
+    variação_longitude = distancia_centro_placa_metros/(raio_terra * cos(latitude_decimal))
+
+    latitude_placa = latitude_decimal + variação_latitude
+    longitude_placa = longitude_decimal + variação_longitude
+
+    return latitude_placa, longitude_placa
+
+
+#Une todas as funções do calculo das coordenadas em uma só
+def calcula_coordenadas_geograficas(imagem):
+    abertura_lente = 73.7 #do próprio drone 
+    metadados = extract_metadata(imagem)
+    altitude = metadados['GPSInfo'][6] - 22.3 #referente à altitude (altura do drone a partir do nível do mar)
+    pixel_em_metros = calcula_tamanho_1_pixel(altitude, abertura_lente, imagem)
+
+
+    coordenadas_placa = (611, 182) #deve ser pega no loop da função extract_placas_from_predictions
+    distancia_centro_placa_metros = calcula_distancia_centro_placa(imagem, coordenadas_placa, pixel_em_metros)
+
+    hemisferio_latitude = metadados['GPSInfo'][1]
+    latitude = metadados['GPSInfo'][2]
+    hemisferio_longitude = metadados['GPSInfo'][3]
+    longitude = metadados['GPSInfo'][4]
+
+    nova_latitude, nova_longitude = calcula_coordenadas_geograficas_placa(hemisferio_latitude, hemisferio_longitude, latitude, longitude)
+    return nova_latitude, nova_longitude
+    
 
 
